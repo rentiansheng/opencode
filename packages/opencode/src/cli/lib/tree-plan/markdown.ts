@@ -43,7 +43,19 @@ export function render(root: PlanNode, full = false): string {
       const indent = "  ".repeat(depth)
       const id = full ? child.id : shorts!.get(child.id)!
       const num = nums.get(child.id) ?? "?"
-      lines.push(`${indent}- ${num} ${child.title} (id: ${id})`)
+      const check = child.status === "done" ? "[x]" : "[ ]"
+      const status = child.status === "blocked" ? " [BLOCKED]" : child.status === "needs_review" ? " [REVIEW]" : ""
+      const deps =
+        child.depends_on.length > 0
+          ? ` (depends_on: ${child.depends_on.map((d) => (full ? d : d.slice(0, 8))).join(", ")})`
+          : ""
+      const hint = child.metadata.action_hint ? ` (hint: ${child.metadata.action_hint})` : ""
+      const resources = child.metadata.resources?.length ? ` (resources: ${child.metadata.resources.join(", ")})` : ""
+      const hasExtras = status || deps || hint || resources || child.type !== "code"
+      const suffix = hasExtras
+        ? `${status}${child.type !== "code" ? ` (type: ${child.type})` : ""}${deps}${hint}${resources}`
+        : ` (id: ${id})`
+      lines.push(`${indent}- ${check} ${num} ${child.title}${suffix}`)
       walk(child, depth + 1)
     }
   }

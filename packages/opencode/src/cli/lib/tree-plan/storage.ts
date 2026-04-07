@@ -1,6 +1,7 @@
 import { readFile } from "fs/promises"
 import type { PlanNode } from "./node"
 import { planPath, branchPath, currentPlanPath, atomicWriteJson, atomicWriteText } from "./paths"
+import { render } from "./markdown"
 
 function ids(node: PlanNode, out: Set<string> = new Set()): Set<string> {
   out.add(node.id)
@@ -35,9 +36,20 @@ function validate(root: PlanNode) {
   normalize(root)
 }
 
+function fillDefaults(node: PlanNode): PlanNode {
+  return {
+    ...node,
+    type: node.type ?? "code",
+    status: node.status ?? "todo",
+    depends_on: node.depends_on ?? [],
+    metadata: { ...(node.metadata ?? {}), resources: node.metadata?.resources ?? [] },
+    children: node.children.map(fillDefaults),
+  }
+}
+
 async function readJson(p: string): Promise<PlanNode> {
   const text = await readFile(p, "utf-8")
-  return JSON.parse(text) as PlanNode
+  return fillDefaults(JSON.parse(text) as PlanNode)
 }
 
 export async function readCurrentPlan(): Promise<string | null> {
@@ -63,6 +75,7 @@ export async function loadPlan(name: string): Promise<PlanNode> {
 export async function savePlan(name: string, root: PlanNode) {
   validate(root)
   await atomicWriteJson(planPath(name), root)
+  await atomicWriteText(planPath(name).replace(/\.json$/, ".md"), render(root))
 }
 
 export async function loadBranch(name: string, branch: string): Promise<PlanNode> {
