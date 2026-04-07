@@ -8,6 +8,7 @@ import { loadPlan, savePlan, loadBranch, saveBranch, readCurrentPlan, writeCurre
 import { render } from "../lib/tree-plan/markdown"
 import { selectNode } from "../lib/tree-plan/select"
 import { findNode, addChild } from "../lib/tree-plan/node"
+import type { TaskType, TaskStatus } from "../lib/tree-plan/node"
 
 async function resolvePlan(name?: string): Promise<string> {
   if (name) return name
@@ -122,7 +123,19 @@ const AddCommand = cmd({
       .option("name", { type: "string", describe: "plan name" })
       .option("parent", { type: "string", describe: "parent node ID" })
       .option("title", { type: "string", describe: "node title" })
-      .option("yes", { type: "boolean", default: false, describe: "skip prompts" }),
+      .option("yes", { type: "boolean", default: false, describe: "skip prompts" })
+      .option("type", {
+        type: "string",
+        describe: "task type (analysis|design|code|test|refactor|debug|review|docs|ops|research)",
+      })
+      .option("status", { type: "string", describe: "task status (todo|in_progress|blocked|needs_review|done)" })
+      .option("depends-on", { type: "array", string: true, describe: "IDs this task depends on" })
+      .option("action-hint", { type: "string", describe: "execution hint for this leaf task" })
+      .option("resource", {
+        type: "array",
+        string: true,
+        describe: "file/service this task touches (for conflict detection)",
+      }),
   handler: async (args) => {
     const name = await resolvePlan(args.name as string | undefined)
     const yes = args.yes as boolean
@@ -153,7 +166,14 @@ const AddCommand = cmd({
       process.exit(1)
     }
 
-    addChild(parent, title)
+    const opts = {
+      type: args.type as TaskType | undefined,
+      status: args.status as TaskStatus | undefined,
+      depends_on: (args["depends-on"] as string[] | undefined) ?? [],
+      action_hint: args["action-hint"] as string | undefined,
+      resources: args.resource as string[] | undefined,
+    }
+    addChild(parent, title, opts)
     await savePlan(name, root)
     process.stdout.write(`Added child "${title}" to ${pid}\n`)
   },
