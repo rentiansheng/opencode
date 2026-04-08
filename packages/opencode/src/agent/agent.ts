@@ -12,6 +12,7 @@ import PROMPT_GENERATE from "./generate.txt"
 import PROMPT_COMPACTION from "./prompt/compaction.txt"
 import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SUMMARY from "./prompt/summary.txt"
+import PROMPT_TREE_PLAN from "./prompt/tree-plan.txt"
 import PROMPT_TITLE from "./prompt/title.txt"
 import { Permission } from "@/permission"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
@@ -141,6 +142,31 @@ export namespace Agent {
                 }),
                 user,
               ),
+              mode: "primary",
+              native: true,
+            },
+            "tree-plan": {
+              name: "tree-plan",
+              description: "Tree-plan mode. Restricts edits to tree-plan files.",
+              options: {},
+              permission: Permission.merge(
+                defaults,
+                Permission.fromConfig({
+                  question: "allow",
+                  plan_exit: "allow",
+                  edit: {
+                    "*": "deny",
+                    [path.join(".opencode", "tree-plan", "**")]: "allow",
+                  },
+                  write: {
+                    "*": "deny",
+                    [path.join(".opencode", "tree-plan", "**")]: "allow",
+                  },
+                  bash: { "*": "ask" },
+                }),
+                user,
+              ),
+              prompt: PROMPT_TREE_PLAN,
               mode: "primary",
               native: true,
             },
