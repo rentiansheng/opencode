@@ -28,6 +28,8 @@ import { MessageID, PartID } from "@/session/schema"
 import { createStore, produce, unwrap } from "solid-js/store"
 import { usePromptHistory, type PromptInfo } from "./history"
 import { computePromptTraits } from "./traits"
+import { matchLocalSlash } from "./local-slash"
+import { classifySubmitRouting } from "./submit-routing"
 import { assign } from "./part"
 import { usePromptStash } from "./stash"
 import { DialogStash } from "../dialog-stash"
@@ -1027,6 +1029,25 @@ export function Prompt(props: PromptProps) {
     if (trimmed === "exit" || trimmed === "quit" || trimmed === ":q") {
       void exit()
       return true
+    }
+    if (store.prompt.input.startsWith("/")) {
+      const routing = classifySubmitRouting(store.prompt.input, {
+        localTokens: ["end", "follow"],
+        serverCommands: [],
+      })
+      if (routing.kind === "local") {
+        const onSelect = matchLocalSlash(command.slashes(), routing.token)
+        if (onSelect) {
+          onSelect()
+          history.append({ ...store.prompt, mode: store.mode })
+          input.extmarks.clear()
+          setStore("prompt", { input: "", parts: [] })
+          setStore("extmarkToPartIndex", new Map())
+          props.onSubmit?.()
+          input.clear()
+          return true
+        }
+      }
     }
     const selectedModel = local.model.current()
     if (!selectedModel) {

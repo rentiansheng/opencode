@@ -801,10 +801,13 @@ export function Session() {
       },
     },
     {
-      title: "Last message",
+      title: "Jump to bottom",
       value: "session.last",
       category: "Session",
-      hidden: true,
+      slash: {
+        name: "end",
+        aliases: ["follow"],
+      },
       run: () => {
         scroll.scrollTo(scroll.scrollHeight)
         dialog.clear()
